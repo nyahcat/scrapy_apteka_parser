@@ -20,11 +20,14 @@ class TestParser(scrapy.Spider):
 
     def parse(self, response):
         # Получаем url-ы товаров
-        urls = response.xpath('//div[@class="goods-card__name text text_size_default text_weight_medium"]/a/@href').extract()
+        urls = response.xpath('//div[@class="goods-card__name text text_size_default text_weight_medium"]/a/@href').getall()
+
+        # with open('test_site.txt', 'w', encoding='utf-8') as file:
+        #     file.write(response.text)
 
         for url in urls:
             url = response.urljoin(url)
-            yield scrapy.Request(url=url, cookies={'city': '92'}, callback=self.parse_data)  # Томск {'city':'92'} Moscow 28
+            yield scrapy.Request(url=url, cookies={'city': '92'}, callback=self.parse_data)  # Томск {'city':'92'}
 
         # Пагинация
         next_page_url = response.xpath('//li[@class="ui-pagination__item ui-pagination__item_next"]/a/@href').get()
@@ -64,7 +67,7 @@ class TestParser(scrapy.Spider):
         def get_description(descr_list):
             """  С помощью RegEx удаляем литералы """
             if descr_list:
-                return  re.sub(r'\s+', ' ', ' '.join(desription_list)).strip()
+                return re.sub(r'\s+', ' ', ' '.join(desription_list)).strip()
 
 
         item = TestParseItem()
@@ -77,9 +80,9 @@ class TestParser(scrapy.Spider):
 
         item['url'] = product_url
 
-        item['title'] = response.xpath('//h1[@class="text text_size_display-1 text_weight_bold"]/span/text()').get()
+        item['title'] = response.xpath('//h1[@class="text text_size_display-1 text_weight_bold"]/span/text()').get(default='')
 
-        item['brand'] = response.xpath('//div[@class="page-header__description"]/div/span[@itemtype="legalName"]/text()').get()
+        item['brand'] = response.xpath('//div[@class="page-header__description"]/div/span[@itemtype="legalName"]/text()').get(default='')
 
         item['section'] = response.xpath('//li[@class="ui-breadcrumbs__item"]/a/span/span/text()').getall()
 
@@ -96,6 +99,6 @@ class TestParser(scrapy.Spider):
         desription_list = response.xpath('//div[@class="custom-html content-text"]/p/text()').getall()
         item['metadata'] = {
             '__description': get_description(desription_list),
-            'СТРАНА ПРОИЗВОДИТЕЛЬ': response.xpath('//div[@class="page-header__description"]/div/span[@itemtype="location"]/text()').get()
+            'СТРАНА ПРОИЗВОДИТЕЛЬ': response.xpath('//div[@class="page-header__description"]/div/span[@itemtype="location"]/text()').get(default='')
         }
         yield item
